@@ -1,41 +1,46 @@
-package Aplicacion;
+package btree;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
-public class BNode<E> {
+public class BNode<E extends Comparable<E>> {
     protected ArrayList<E> keys;
     protected ArrayList<BNode<E>> childs;
     protected int count;
-    protected static int ID_GEN = 0;
     protected int idNode;
+    private static int nextId = 0;
 
     public BNode(int n) {
-        this.idNode = ID_GEN++;
+        this.keys = new ArrayList<>(Collections.nCopies(n, null));
+        this.childs = new ArrayList<>(Collections.nCopies(n, null));
         this.count = 0;
-        this.keys = new ArrayList<>(n);
-        this.childs = new ArrayList<>(n + 1);
-        for (int i = 0; i < n; i++) this.keys.add(null);
-        for (int i = 0; i < n + 1; i++) this.childs.add(null);
+        this.idNode = nextId++;
     }
 
     public boolean nodeFull(int maxKeys) {
         return count == maxKeys;
     }
 
+    public boolean nodeEmpty() {
+        return count == 0;
+    }
+
     public boolean searchNode(E key, int[] pos) {
-        pos[0] = 0;
-        while (pos[0] < count && keys.get(pos[0]) != null && ((Comparable<E>) key).compareTo(keys.get(pos[0])) > 0) {
-            pos[0]++;
+        for (int i = 0; i < count; i++) {
+            if (keys.get(i) == null) continue;
+            if (keys.get(i).equals(key)) {
+                pos[0] = i;
+                return true;
+            } else if (keys.get(i).compareTo(key) > 0) {
+                pos[0] = i;
+                return false;
+            }
         }
-        return (pos[0] < count && keys.get(pos[0]) != null && ((Comparable<E>) key).compareTo(keys.get(pos[0])) == 0);
+        pos[0] = count;
+        return false;
     }
 
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Nodo ").append(idNode).append(": ");
-        for (int i = 0; i < count; i++) {
-            sb.append(keys.get(i)).append(" ");
-        }
-        return sb.toString().trim();
+        return "Nodo " + idNode + ": " + keys.subList(0, count);
     }
 }

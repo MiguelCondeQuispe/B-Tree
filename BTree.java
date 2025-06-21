@@ -1,10 +1,15 @@
-package Aplicacion;
+package btree;
+
+import java.io.*;
+import java.util.*;
+
+import Aplicacion.RegistroEstudiante;
 
 public class BTree<E extends Comparable<E>> {
-    protected BNode<E> root;
-    protected int orden;
-    protected boolean up;
-    protected BNode<E> nDes;
+    private BNode<E> root;
+    private int orden;
+    private boolean up;
+    private BNode<E> nDes;
 
     public BTree(int orden) {
         this.orden = orden;
@@ -12,16 +17,14 @@ public class BTree<E extends Comparable<E>> {
     }
 
     public boolean isEmpty() {
-        return this.root == null;
+        return root == null;
     }
 
     public void insert(E cl) {
         up = false;
-        E mediana;
-        BNode<E> pnew;
-        mediana = push(this.root, cl);
+        E mediana = push(this.root, cl);
         if (up) {
-            pnew = new BNode<>(this.orden);
+            BNode<E> pnew = new BNode<>(orden);
             pnew.count = 1;
             pnew.keys.set(0, mediana);
             pnew.childs.set(0, this.root);
@@ -38,15 +41,15 @@ public class BTree<E extends Comparable<E>> {
             nDes = null;
             return cl;
         } else {
-            boolean fl = current.searchNode(cl, pos);
-            if (fl) {
-                System.out.println("Item duplicado");
+            boolean found = current.searchNode(cl, pos);
+            if (found) {
+                System.out.println("Item duplicado\n");
                 up = false;
                 return null;
             }
             mediana = push(current.childs.get(pos[0]), cl);
             if (up) {
-                if (current.nodeFull(this.orden - 1)) {
+                if (current.nodeFull(orden - 1)) {
                     mediana = dividedNode(current, mediana, pos[0]);
                 } else {
                     putNode(current, mediana, nDes, pos[0]);
@@ -69,57 +72,108 @@ public class BTree<E extends Comparable<E>> {
 
     private E dividedNode(BNode<E> current, E cl, int k) {
         BNode<E> rd = nDes;
-        int i, posMdna;
-        posMdna = (k <= this.orden / 2) ? this.orden / 2 : this.orden / 2 + 1;
-        nDes = new BNode<>(this.orden);
-        for (i = posMdna; i < this.orden - 1; i++) {
+        int posMdna = (k <= orden / 2) ? orden / 2 : orden / 2 + 1;
+        nDes = new BNode<>(orden);
+
+        for (int i = posMdna; i < orden - 1; i++) {
             nDes.keys.set(i - posMdna, current.keys.get(i));
             nDes.childs.set(i - posMdna + 1, current.childs.get(i + 1));
         }
-        nDes.count = (this.orden - 1) - posMdna;
+
+        nDes.count = (orden - 1) - posMdna;
         current.count = posMdna;
-        if (k <= this.orden / 2) {
-            putNode(current, cl, rd, k);
+
+        if (k <= orden / 2) {
+        	putNode(current, cl, rd, k);
         } else {
-            putNode(nDes, cl, rd, k - posMdna);
+        	putNode(nDes, cl, rd, k - posMdna);
         }
+
         E median = current.keys.get(current.count - 1);
         nDes.childs.set(0, current.childs.get(current.count));
         current.count--;
+        up = true;
         return median;
     }
 
-    // ========== EJERCICIO 4 ==========
-    public String buscarNombre(int codigo) {
-        RegistroEstudiante dummy = new RegistroEstudiante(codigo, "");
-        return buscarNombreRec((BNode<RegistroEstudiante>) this.root, dummy);
-    }
-
-    private String buscarNombreRec(BNode<RegistroEstudiante> node, RegistroEstudiante clave) {
-        if (node == null) return "No encontrado";
-
-        for (int i = 0; i < node.count; i++) {
-            RegistroEstudiante actual = (RegistroEstudiante) node.keys.get(i);
-            if (clave.compareTo(actual) == 0) {
-                return actual.getNombre();
-            } else if (clave.compareTo(actual) < 0) {
-                return buscarNombreRec((BNode<RegistroEstudiante>) node.childs.get(i), clave);
-            }
-        }
-        return buscarNombreRec((BNode<RegistroEstudiante>) node.childs.get(node.count), clave);
-    }
-
-    @Override
     public String toString() {
-        return isEmpty() ? "Árbol vacío" : writeTree(this.root, "");
+    	return isEmpty() ? "BTree is empty..." : writeTree(this.root);
     }
 
-    private String writeTree(BNode<E> node, String indent) {
-        if (node == null) return "";
-        StringBuilder sb = new StringBuilder(indent + node + "\n");
-        for (int i = 0; i <= node.count; i++) {
-            sb.append(writeTree(node.childs.get(i), indent + "  "));
-        }
-        return sb.toString();
+    private String writeTree(BNode<E> current) {
+    	if (current == null) return "";
+    	StringBuilder sb = new StringBuilder(current.toString() + "\n");
+    	for (int i = 0; i <= current.count; i++) {
+    		sb.append(writeTree(current.childs.get(i)));
+    	}
+    	return sb.toString();
     }
+
+    public boolean search(E c1) { 
+    	return searchRecursive(this.root, c1); 
+    } 
+    
+    private boolean searchRecursive(BNode<E>current, E c1) { 
+    	if (current==null) { 
+    		return false; 
+    	} 
+    	int[]pos=new int[1]; 
+    	boolean found = current.searchNode(c1, pos); 
+    	if(found) { 
+    		System.out.println(c1 + "se encuentra en el nodo " + current.idNode+" en la posicion "+ pos[0]); 
+    		return true; 
+    	}else {
+    		return searchRecursive(current.childs.get(pos[0]), c1); 
+    	} 
+    }
+    
+    public void remove(E key) {
+    	if(this.root ==null) {
+    		System.out.println("El arbol esta vacio");
+    		return;
+    	}
+    	removeInternal(this.root, key);
+    	
+    	if(this.root.count ==0 && !this.root.childs.isEmpty()) {
+    		this.root = this.root.childs.get(0);
+    	}
+    	System .out.println("Eliminacion completada");
+    }
+    
+    private void removeInternal(BNode<E> node, E key){
+    	if (node == null) {
+            System.out.println("Subárbol vacio no hay nodo que eliminar");
+            return;
+        }
+    	
+    	int pos = findKeyPosition(node,key);
+    	if(pos < node.count && node.keys.get(pos).compareTo(key)==0){
+    		if (node.childs.get(0)==null) {
+    			for (int i= pos;i<node.count -1; i++){
+    				node.keys.set(i,  node.keys.get(i+1));
+    			}
+    			node.keys.set(node.count - 1,  null);
+    			node.count--;
+    		}else {
+    			System.out.println("No se completo la eliminacion del nodo interno ");
+    		}
+    	}else {
+    		if(node.childs.get(pos)==null) {
+    			System.out.println("La clave no se encuentra en el arbol");
+    			return;
+    		}
+    	}
+    	removeInternal(node.childs.get(pos),key);
+    }
+    
+    private int findKeyPosition(BNode<E> node,E key) {
+    	int i = 0;
+    	while (i<node.count && key.compareTo(node.keys.get(i))>0) {
+    		i++;
+    	}
+    	return i;
+    }
+    
+   
+
 }
